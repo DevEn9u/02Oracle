@@ -241,13 +241,19 @@ from employees;
 1. substr() 함수를 사용하여 사원들의 입사한 년도와 입사한 달만 출력하시오.
 */
 select
-    substr(hiredate, 1, 5)
+    substr(hiredate, 1, 5),
+    to_char(hiredate, 'yy-mm')
 from emp;
 /*
 2. substr()함수를 사용하여 4월에 입사한 사원을 출력하시오.
 즉, 연도에 상관없이 4월에 입사한 모든사원이 출력되면 된다.
 */
 select * from emp where(substr(hiredate, 4, 2) = 04);
+--to_char()를 이용한 방법
+select * from emp where to_char(hiredate, 'mm') = 04;
+--like를 사용하는 방법
+select * from emp where hiredate like '___04___';
+
 /*
 3. mod() 함수를 사용하여 사원번호가 짝수인 사람만 출력하시오.
 */

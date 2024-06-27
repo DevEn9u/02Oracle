@@ -211,13 +211,14 @@ select ename, sal, sal + 300 from emp;
 2. 사원의 이름, 급여, 연봉을 수입이 많은것부터 작은순으로 출력하시오.
 연봉은 월급에 12를 곱한후 $100을 더해서 계산하시오.
 */
-select ename, sal, sal * 12 + 100 "annualSal" from emp order by sal desc;
+select ename, sal, sal * 12 + 100 "annualSal" from emp
+order by sal desc;
 /*
 3. 급여가  2000을 넘는 사원의 이름과 급여를 내림차순으로 정렬하여 출력하시오
 */
 select
     ename, sal, sal * 12 + 100 "annualSal" from emp 
-    where sal > 2000 order by sal desc;
+where sal > 2000 order by ename, sal desc;
 /*
 4. 사원번호가  7782인 사원의 이름과 부서번호를 출력하시오.
 */
@@ -225,7 +226,7 @@ select ename, deptno from emp where empno = 7782;
 /*
 5. 급여가 2000에서 3000사이에 포함되지 않는 사원의 이름과 급여를 출력하시오.
 */
-select ename, sal from emp where sal between 2000 and 3000;
+select ename, sal from emp where not (sal between 2000 and 3000);
 /*
 6. 입사일이 81년2월20일 부터 81년5월1일 사이인 사원의 이름, 담당업무, 입사일을 출력하시오.
 */
@@ -237,14 +238,19 @@ between '81/02/20' and '81/05/01';
 */
 select
     ename, deptno from emp where deptno = 20 or deptno = 30
-    order by ename desc;
+order by ename desc;
+-- or 조건을 in으로 대체
+select
+    ename, deptno from emp where deptno in(20, 30)
+order by ename desc;
+
 /*
 8. 사원의 급여가 2000에서 3000사이에 포함되고 부서번호가 20 또는 30인 사원의 
 이름, 급여와 부서번호를 출력하되 이름순(오름차순)으로 출력하시오
 */
-select 
-    ename, sal, deptno from emp where (sal between 2000 and 3000) and
-    (deptno = 20 or deptno = 30) order by ename;
+select ename, sal, deptno from emp
+where (sal between 2000 and 3000)
+and (deptno = 20 or deptno = 30) order by ename;
 /*
 9. 1981년도에 입사한 사원의 이름과 입사일을 출력하시오. (like 연산자와 와일드카드 사용)
 */
@@ -267,6 +273,13 @@ select ename from emp where ename like '__R%';
 13. 이름에 A와 E를 모두 포함하고 있는 사원의 이름을 표시하시오.
 */
 select ename from emp where ename like '%A%' and ename like '%E%';
+
+--만약 아래와 같이 쿼리를 작성하면 A가 먼저 나온후 E가 있는 이름을 검색한다.
+select ename from emp where ename lika '%E%A';
+-- E가 먼저, A가 뒤에 있는 이름을 검색한다.
+select ename from emp where ename lika '%A%E';
+-- 따라서 우선순위가 생기게 되므로 제대로 검색이 되지 않을 수 있다.
+
 /*
 14. 담당업무가 사무원(CLERK) 또는 영업사원(SALESMAN)이면서
 급여가 $1600, $950, $1300 이 아닌 사원의 이름, 담당업무, 급여를 출력하시오. 

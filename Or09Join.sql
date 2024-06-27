@@ -219,3 +219,169 @@ from employees em, departments de, locations lo
 where
     em.department_id = de.department_id (+) and
     de.location_id = lo.location_id (+);
+    
+/*
+퀴즈] 2007년에 입사한 사원을 조회하시오. 단, 부서에 배치되지 않은
+직원의 경우 <부서없음>으로 출력하시오. 단, 표준방식으로 작성하시오.
+출력항목 : 사번, 이름, 성, 부서명
+*/
+select
+    employee_id, first_name, last_name,
+    hire_date, nvl(department_name, '<부서없음>')
+from employees em left outer join departments de
+    on em.department_id = de.department_id
+where
+   hire_date like '07%';
+   
+--강사님 버젼
+-- 우선 저장된 레코드를 러프하게 확인한다.
+select first_name, hire_date, to_char(hire_date, 'yyyy') from employees;
+-- 2007년에 입사한 사원을 인출한다.
+select first_name, hire_date from employees
+where to_char(hire_date, 'yyyy') = '2007';
+/* 외부조인을 표준방식으로 작성한 후 결과를 확인한다.
+nvl()함수를 통해 null값을 지정한 값으로 변경햊분다. 결과는 19개 인출됨 */
+select employee_id, first_name, last_name, nvl(department_name, '<부서없음>')
+from employees E left outer join departments D
+    on E.department_id = D.department_id
+where to_char(hire_date, 'yyyy') = '2007';
+
+/*
+시나리오] 위 쿼리문을 오라클 방식으로 변경하시오.
+*/
+select employee_id, first_name, last_name, nvl(department_name, '<부서없음>')
+from employees Em, departments Dm
+where Em.department_id = Dm.department_id (+)
+    and to_char(hire_date, 'yyyy') = '2007';
+
+/*
+3] self join(셀프조인)
+셀프조인은 하나의 테이블에 있는 컬럼끼리 조인해야 하는 경우 사용한다.
+즉 자기자신의 테이블과 조인을 맺는 것이다.
+셀프조인에서는 별칭이 테이블을 구분하는 구분자의 역할을 하므로 굉장히
+중요하다.
+형식] select 별칭1.컬럼, 별칭2.컬럼 ...
+        from 테이블A 별칭1, 테이블A 별칭2
+        where 별칭1.컬럼 = 별칭2.컬럼;
+*/
+
+/*
+시나리오] 사원테이블에서 각 사원의 매니저 아이디와 매니저 이름을 출력하시오.
+    단, 이름은 first_name과 last_name을 하나로 연결해서 출력하시오.
+*/
+select 
+    empclerk.employee_id "사원번호",
+    empclerk.first_name || ' ' || empclerk.last_name "full_name",
+    empclerk.manager_id "매니저사원번호",
+    empManager.first_name || ' ' || empManager.last_name "Manager_full_name"
+from employees empClerk, employees empManager
+where empClerk.manager_id = empManager.employee_id;
+
+/*
+시나리오] self join을 사용하여 'Kimberely / Grant' 사원보다 입사일이
+늦은 사원의 이름과 입사일을 출력하시오.
+출력목록: first_name, last_name, hire_date
+*/
+
+-- Kimberely의 입사일 확인
+select first_name, last_name, hire_date
+from employees
+where first_name = 'Kimberely' and last_name = 'Grant';
+-- 입사일이 07/05/24인 것을 확인, 이 이후에 입사한 사원의 레코드 인출
+select first_name, last_name, hire_date
+from employees
+where hire_date > '07/05/24' order by first_name;
+
+-- self join으로 쿼리문 작성(킴벌리와 사원 입장의 테이블로 분할)
+select clerk.first_name, clerk.last_name, clerk.hire_date
+from employees Kim, employees Clerk
+where kim.hire_date < clerk.hire_date and
+    kim.first_name = 'Kimberely' and kim.last_name = 'Grant'
+order by first_name;
+
+/*
+using: join문에서 주로 사용하는 on절을 대체할 수 있는 문장
+    형식] on 테이블1.컬럼 = 테이블2.컬럼
+            => using(컬럼)
+*/
+/*
+시나리오] Seattle에 위치한 부서에서 근무하는 직원의 정보를
+    출력하는 쿼리문을 작성하시오. 단 using을 사용해서 작성하시오.
+    출력결과] 사원이름, 이메일, 부서아이디, 부서명, 담당업무아이디,
+        담당업무명, 근무지역
+*/
+select 
+    first_name, last_name, email, 
+    department_id, departements.department_name,
+    jobs.job_id, job_title, city, state_province
+from locations inner join departments using(location_id)
+    inner join employees using(department_id)
+    inner join jobs using(job_id)
+where city = initcap('seattle');
+/*
+    위 쿼리문은 using문을 사용하면서 인출하려는 데이터에 별칭을 붙였다.
+    using절에 사용된 참조컬럼의 경우 select절에서 별칭을 붙이면 오히려
+    에러가 발생한다.
+    using절에 사용된 컬럼은 양쪽 테이블에 동시에 존재하는 컬럼이라는
+    것을 전제로 작성되기 때문에 굳이 별칭을 사용할 필요가 없기 때문이다.
+    즉 using은 테이블의 별칭 및 on절을 제거하여 좀 더 심플하게 
+    join 쿼리문을 작성할 수 있게 해준다.
+*/
+select 
+    first_name, last_name, email, 
+    department_id, department_name,
+    job_id, job_title, city, state_province
+from locations inner join departments using(location_id)
+    inner join employees using(department_id)
+    inner join jobs using(job_id)
+where city = initcap('seattle');
+
+/*
+ 퀴즈] 2005년에 입사한 사원들중 California(STATE_PROVINCE) / 
+ South San Francisco(CITY)에서 근무하는 사원들의 정보를 출력하시오.
+ 단, 표준방식과 using을 사용해서 작성하시오.
+ 
+ 출력결과] 사원번호, 이름, 성, 급여, 부서명, 국가코드, 국가명(COUNTRY_NAME)
+        급여는 세자리마다 컴마를 표시한다. 
+ 참고] '국가명'은 countries 테이블에 입력되어있다. 
+*/
+select
+    employee_id, first_name, last_name, 
+    ltrim(to_char(salary, '$999,000')) "SALARY",
+    department_name, country_id, country_name
+from countries inner join locations using(country_id)
+    inner join departments using(location_id)
+    inner join employees using(department_id)
+where
+    substr(hire_date, 1, 2) = 05 and
+    state_province = initcap('california') and
+    city = 'South San Francisco';
+
+-- 강사님 버젼
+-- 2005년에 입사한 사원 인출(결과: 29명)
+select first_name, hire_date from employees;
+-- substr() 이용
+select first_name, hire_date from employees
+where substr(hire_date, 1, 2) = 05;
+-- to_char() 이용
+select first_name, hire_date from employees
+where to_char(hire_date, 'yyyy') = 2005;
+-- 문제에서 주어진 지역정보로 부서번호를 확인(결과: 지역번호 1500)
+select * from locations where city = 'South San Francisco'
+    and state_province = 'California';
+-- 지역번호 1500을 통해 해당 위치에 있는 부서를 확인(결과: 부서번호 50)
+select * from departments where location_id = 1500;
+-- 앞에서 확인한 정보를 토대로 쿼리문 작성
+select * from employees where department_id = 50 and
+    to_char(hire_date, 'yyyy') = 2005;
+/* 2005년에 입사했고, 50번부서(shipping)에 근무하는 사원의
+정보를 인출해야 한다.*/
+select 
+    employee_id, first_name, last_name, to_char(salary, '$0,000'),
+    department_name, country_id, country_name
+from employees inner join departments using(department_id)
+    inner join locations using(location_id)
+    inner join countries using(country_id)
+where to_char(hire_date, 'yyyy') = 2005 and
+    city = 'South San Francisco' and
+    state_province = 'California';
