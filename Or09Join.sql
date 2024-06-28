@@ -89,7 +89,7 @@ select * from jobs where job_id = 'PU_CLERK';--Purchasing Clerk
 양쪽 테이블에 동시에 존재하는 컬럼인 경우에는
 반드시 테이블명이나 별칭을 명시해야 한다.
 */
-select 
+SELECT 
     first_name, last_name, email,
     departments.department_id, department_name,
     city, state_province,
@@ -123,7 +123,7 @@ from locations L
     select 컬럼1, 컬럼2, ...
     from 테이블1, 테이블2
     where
-        테이블1.기본키컬럼 = 테이블2.외래킬컬럼
+        테이블1.기본키컬럼 = 테이블2.외래키컬럼
         and 조건1 and 조건2 ...;
 표준방식에서 사용한 inner join과 on을 제거하고 조인의 조건을
 where절에 표기하는 방식이다.
@@ -141,7 +141,7 @@ from employees Emp, departments Dep
 where Emp.department_id = Dep.department_id;
 
 /*
-시나리오] seattle(시애틀)에 위치한 부서에서 근무하는 직원의 정보를
+시나리오] Seattle(시애틀)에 위치한 부서에서 근무하는 직원의 정보를
     출력하는 쿼리문을 작성하시오. 단 오라클 방식으로 작성하시오. 
     출력결과] 사원이름, 이메일, 부서아이디, 부서명, 담당업무아이디, 
         담당업무명, 근무지역
@@ -385,3 +385,110 @@ from employees inner join departments using(department_id)
 where to_char(hire_date, 'yyyy') = 2005 and
     city = 'South San Francisco' and
     state_province = 'California';
+
+///////////////////////////////////////
+/* 과제 24.06.28 */
+/* 1. inner join 방식중 오라클방식을 사용하여 first_name이
+Janette 인 사원의 부서ID와 부서명을 출력하시오.
+출력목록] 부서ID, 부서명 */
+
+/* 오라클 방식
+    select 컬럼1, 컬럼2, ...
+    from 테이블1, 테이블2
+    where
+        테이블1.기본키컬럼 = 테이블2.외래키컬럼
+        and 조건1 and 조건2 ...;
+*/
+select dep.department_id, department_name
+from employees emp, departments dep
+    where emp.department_id = dep.department_id
+    and first_name = 'Janette';
+    
+/*
+2. inner join 방식중 SQL표준 방식을 사용하여 사원이름과 함께 
+그 사원이 소속된 부서명과 도시명을 출력하시오.
+출력목록] 사원이름, 부서명, 도시명
+*/
+
+select first_name, last_name, department_name, city
+from employees e
+inner join departments d
+    on e.department_id  = d.department_id
+inner join locations l
+    on d.location_id = l.location_id;
+
+--    select 컬럼1, 컬럼2
+--    from 테이블1 inner join 테이블2
+--        on 테이블1.기본키컬럼 = 테이블2.외래키컬럼
+
+/*
+3. 사원의 이름(FIRST_NAME)에 'A'가 포함된 모든사원의 이름과 부서명을 
+출력하시오.
+출력목록] 사원이름, 부서명
+*/
+select first_name, last_name, department_name
+from employees e, departments d
+where e.department_id = d.department_id and
+first_name like '%A%';
+
+/*
+4. “city : Toronto / state_province : Ontario” 에서 근무하는 
+모든 사원의 이름, 업무명, 부서번호 및 부서명을 출력하시오.
+출력목록] 사원이름, 업무명, 부서ID, 부서명
+*/
+select first_name, last_name, e.department_id, department_name
+from employees e, departments d, locations l
+where 
+    e.department_id = d.department_id and
+    d.location_id = l.location_id and
+    l.city = 'Toronto' and
+    l.state_province = 'Ontario';
+
+/*
+5. Equi Join을 사용하여 커미션(COMMISSION_PCT)을 받는 모든 사원의 
+이름, 부서명, 도시명을 출력하시오. 
+출력목록] 사원이름, 부서ID, 부서명, 도시명
+*/
+SELECT first_name, last_name, e.department_id, department_name, city
+FROM employees e, departments d, locations l
+Where
+    e.department_id = d.department_id and
+    d.location_id = l.location_id and
+    commission_pct IS NOT NULL;
+
+/*
+6. inner join과 using 연산자를 사용하여 50번 부서(DEPARTMENT_ID)에
+속하는 모든 담당업무(JOB_ID)의 고유목록(distinct)을 
+부서의 도시명(CITY)을 포함하여 출력하시오.
+출력목록] 담당업무ID, 부서ID, 부서명, 도시명
+*/
+SELECT DISTINCT job_id, department_id, department_name, city
+FROM employees e
+    INNER JOIN departments d USING(department_id)
+    INNER JOIN locations l USING(location_id)
+WHERE department_id = 50;
+
+/*
+7. 담당업무ID가 FI_ACCOUNT인 사원들의 메니져는 누구인지 출력하시오. 
+단, 레코드가 중복된다면 중복을 제거하시오. 
+출력목록] 이름, 성, 담당업무ID, 급여
+*/
+SELECT DISTINCT
+    eManager.first_name, eManager.last_name, 
+    eManager.job_id, eManager.salary 
+FROM employees eClerk, employees eManager
+WHERE eClerk.manager_id = eManager.employee_id
+and eClerk.job_id = 'FI_ACCOUNT';
+
+/*
+8. 각 부서의 메니져가 누구인지 출력하시오. 
+출력결과는 부서번호를 오름차순 정렬하시오.
+출력목록] 부서번호, 부서명, 이름, 성, 급여, 담당업무ID
+※ departments 테이블에 각 부서의 메니져가 있습니다.
+*/
+--SELECT 
+--    e.department_id, department_name, first_name, last_name,
+--    salary, job_id
+--FROM employees e, departments d
+--where e.department_id = d.department_id AND
+--e.manager_id = 100;
