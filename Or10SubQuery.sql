@@ -72,7 +72,7 @@ WHERE salary > (SELECT round(avg(salary)) from employees);
             SELECT 컬럼 from 테이블명 where 조건
         );
     ※ 괄호 안의 서브쿼리는 2개 이상의 결과를 인출해야 한다.
-    ※ 경우에 따라 1개의 결과가 나오더라오 에러가 발생하지는 않는다.
+    ※ 경우에 따라 1개의 결과가 나오더라도 에러가 발생하지는 않는다.
 */
 
 /*
@@ -99,7 +99,7 @@ FROM employees WHERE
         SELECT
             job_id, MAX(salary)
         from employees GROUP BY job_id
-    );
+);
     
 /*
 복수행 연산자: any
@@ -179,3 +179,90 @@ SELECT * FROM
 --where rNum >= 1 and rNum <= 10;
 --where rNum >= 11 and rNum <= 20;
 where rNum between 21 and 30;
+
+-----------------------------------------------------
+/*
+1.사원번호가 7782인 사원과 담당 업무가 같은 사원을 표시(사원이름과 담당 업무)하시오.
+*/
+SELECT * FROM emp where empno = 7782;
+SELECT * FROM emp where job = 'MANAGER';
+-- 서브쿼리문 적용
+SELECT * FROM emp WHERE job = (
+    SELECT job FROM emp WHERE empno = 7782
+);
+
+--02.사원번호가 7499인 사원보다 급여가 많은 사원을 표시(사원이름과 담당 업무)하시오.
+SELECT * from emp WHERE sal > (
+    SELECT sal FROM emp WHERE empno = 7499
+);
+--03.최소 급여를 받는 사원의 이름, 담당 업무 및 급여를 표시하시오(그룹함수 사용).
+SELECT empno, ename, job, sal FROM emp WHERE sal = (
+    SELECT min(sal) FROM emp
+);
+--04.평균 급여가 가장 적은 직급(job)과 평균 급여를 표시하시오.
+SELECT job, AVG(sal) AS avg_sal
+FROM emp
+GROUP BY job
+HAVING AVG(sal) = (
+    SELECT MIN(avg_sal)
+    FROM (
+        SELECT job, AVG(sal)
+        FROM emp
+        GROUP BY job
+    )
+);
+
+SELECT job, AVG(sal) FROM emp WHERE sal IN (
+    SELECT MIN(AVG(sal)) FROM emp group by job
+);
+--05.각부서의 최소 급여를 받는 사원의 이름, 급여, 부서번호를 표시하시오.
+SELECT ename, sal, deptno from emp WHERE
+    (deptno, sal) IN (
+        SELECT
+            deptno, min(sal)
+        from emp GROUP BY deptno
+);
+/*
+06.담당 업무가 분석가(ANALYST)인 사원보다 급여가 적으면서 
+업무가 분석가(ANALYST)가 아닌 사원들을 표시(사원번호, 이름, 담당업무, 급여)하시오.
+*/
+SELECT empno, ename, job, sal FROM emp WHERE sal < (
+    SELECT sal FROM emp WHERE job = 'ANALYST');
+/*
+07.이름에 K가 포함된 사원과 같은 부서에서 일하는 
+사원의 사원번호와 이름을 표시하는 질의를 작성하시오.
+*/
+SELECT * FROM emp WHERE deptno in (
+    SELECT deptno from emp where ename like '%K%'
+);
+
+--08.부서 위치가 DALLAS인 사원의 이름과 부서번호 및 담당 업무를 표시하시오.
+SELECT empno, ename, sal FROM emp INNER JOIN dept USING (deptno)
+WHERE loc = 'DALLAS';
+
+/*
+09.평균 급여 보다 많은 급여를 받고 이름에 K가 포함된 사원과 같은 부서에서 
+근무하는 사원의 사원번호, 이름, 급여를 표시하시오.
+*/
+--평균급여보다많은 급여를 받는다.
+SELECT * FROM emp WHERE sal > (
+    SELECT AVG(sal) FROM emp
+);
+--이름에 k가포함되어있다.
+SELECT deptno FROM emp WHERE ename LIKE '%K%'; 
+
+SELECT empno, ename, sal FROM emp WHERE sal > ALL (SELECT AVG(sal) FROM emp)
+    AND deptno IN (
+    SELECT deptno FROM emp WHERE ename LIKE '%K%'
+);
+--10.담당 업무가 MANAGER인 사원이 소속된 부서와 동일한 부서의 사원을 표시하시오.
+SELECT * FROM emp WHERE deptno IN (
+    SELECT deptno FROM emp WHERE job = 'MANAGER'
+);
+/*
+11.BLAKE와 동일한 부서에 속한 사원의 이름과 입사일을 
+표시하는 질의를 작성하시오(단. BLAKE는 제외)
+*/
+SELECT ename, hiredate FROM emp WHERE deptno IN(
+    SELECT deptno FROM emp WHERE ename = 'BLAKE')
+    AND NOT ename = 'BLAKE';

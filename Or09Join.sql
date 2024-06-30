@@ -403,7 +403,6 @@ select dep.department_id, department_name
 from employees emp, departments dep
     where emp.department_id = dep.department_id
     and first_name = 'Janette';
-    
 /*
 2. inner join 방식중 SQL표준 방식을 사용하여 사원이름과 함께 
 그 사원이 소속된 부서명과 도시명을 출력하시오.
@@ -486,9 +485,26 @@ and eClerk.job_id = 'FI_ACCOUNT';
 출력목록] 부서번호, 부서명, 이름, 성, 급여, 담당업무ID
 ※ departments 테이블에 각 부서의 메니져가 있습니다.
 */
---SELECT 
---    e.department_id, department_name, first_name, last_name,
---    salary, job_id
---FROM employees e, departments d
---where e.department_id = d.department_id AND
---e.manager_id = 100;
+SELECT
+    e.department_id, department_name, first_name, last_name,
+    salary, job_id
+FROM employees e, departments d
+WHERE
+    e.department_id = d.department_id AND
+    e.employee_id = d.manager_id
+ORDER BY department_id;
+
+/*
+9. 담당업무명이 Sales Manager인 사원들의 입사년도와 입사년도(hire_date)별 
+평균 급여를 출력하시오. 출력시 년도를 기준으로 오름차순 정렬하시오. 
+출력항목 : 입사년도, 평균급여
+*/
+SELECT
+    to_char(hire_date, 'yyyy'), avg(salary)
+FROM employees e, jobs j
+WHERE
+    e.job_id = j.job_id AND
+    job_title = 'Sales Manager'
+--   group by 안에는 별칭 작성 불가
+    GROUP BY to_char(hire_date, 'yyyy'); 
+    
