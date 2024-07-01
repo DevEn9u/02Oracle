@@ -55,6 +55,7 @@ SELECT * FROM user_sequences;
 /* 시퀀스 생성 후 최초 실행시에는 CURRVAL을 실행할 수 없어 에러가 발생한다.
 NEXTVAL을 먼저 실행해서 시퀀스를 얻어온 후 사용해야 한다. */
 SELECT seq_serial_num.CURRVAL FROM dual;
+--
 /* 다음 입력할 시퀀스를 반환한다. 실행할 때마다 설정한 증가치만큼 증가된
 값이 반환된다. */
 SELECT seq_serial_num.NEXTVAL FROM dual;
