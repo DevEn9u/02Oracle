@@ -181,6 +181,8 @@ SELECT * FROM
 where rNum between 21 and 30;
 
 -----------------------------------------------------
+--퀴즈 24.06.28
+
 /*
 1.사원번호가 7782인 사원과 담당 업무가 같은 사원을 표시(사원이름과 담당 업무)하시오.
 */
@@ -199,22 +201,38 @@ SELECT * from emp WHERE sal > (
 SELECT empno, ename, job, sal FROM emp WHERE sal = (
     SELECT min(sal) FROM emp
 );
+--강사님 버젼
+--급여의 최솟값 확인
+SELECT MIN(sal) FROM emp; -- 800
+--급여 800을 받는 직원
+SELECT * FROM emp WHERE sal = 800;
+SELECT empno, ename, job, sal FROM emp WHERE sal = (SELECT MIN(sal) FROM emp);
 --04.평균 급여가 가장 적은 직급(job)과 평균 급여를 표시하시오.
-SELECT job, AVG(sal) AS avg_sal
-FROM emp
-GROUP BY job
-HAVING AVG(sal) = (
-    SELECT MIN(avg_sal)
-    FROM (
-        SELECT job, AVG(sal)
-        FROM emp
-        GROUP BY job
-    )
-);
-
 SELECT job, AVG(sal) FROM emp WHERE sal IN (
     SELECT MIN(AVG(sal)) FROM emp group by job
 );
+
+--강사님 버젼
+--직급별 평균급여 인출
+SELECT job, AVG(sal) FROM emp GROUP BY job;
+/* 앞에서 구한 평균 급여 레코드에서 가장 적은 값을 찾기 위해 min()함수를
+한번 더 사용한다. 이 경우 job컬럼은 제외해야 에러가 발생하지 않는다. */
+SELECT job, MIN(AVG(sal)) FROM emp GROUP BY job; -- 에러발생(job 컬럼이 애매함)
+SELECT MIN(AVG(sal)) FROM emp GROUP BY job; -- 정상실행. 평균급여중 최솟값을 인출함.
+/*
+평균 급여는 물리적으로 존재하는 컬럼이 아니므로 WHERE절에는 사용할 수 없고
+HAVING절에 사용해야 한다. 즉, 평균급여가 1016인 직급을 출력하는 방식으로
+서브쿼리를 작성해야 한다.
+*/
+SELECT job, AVG(sal)
+FROM emp
+GROUP BY job
+HAVING AVG(sal) = (
+    SELECT MIN(AVG(sal))
+    FROM emp
+    GROUP BY job
+);
+
 --05.각부서의 최소 급여를 받는 사원의 이름, 급여, 부서번호를 표시하시오.
 SELECT ename, sal, deptno from emp WHERE
     (deptno, sal) IN (
@@ -222,12 +240,35 @@ SELECT ename, sal, deptno from emp WHERE
             deptno, min(sal)
         from emp GROUP BY deptno
 );
+
+--강사님버젼
+--그룹을 통해 최소급여 확인
+SELECT deptno, MIN(sal) FROM emp GROUP BY deptno;
+--앞에서 나온 결과를 일반 쿼리문으로 작성
+SELECT ename, sal, deptno FROM emp WHERE
+    (deptno = 20 AND sal = 800) or
+    (deptno = 30 AND sal = 950) or
+    (deptno = 10 AND sal = 1300);
+--복수행 서브쿼리 연산자를 통해 쿼리문 작성
+SELECT ename, sal, deptno FROM emp
+WHERE (deptno, sal) IN (
+    SELECT deptno, MIN(sal) FROM emp GROUP BY deptno);
+    
 /*
 06.담당 업무가 분석가(ANALYST)인 사원보다 급여가 적으면서 
 업무가 분석가(ANALYST)가 아닌 사원들을 표시(사원번호, 이름, 담당업무, 급여)하시오.
 */
 SELECT empno, ename, job, sal FROM emp WHERE sal < (
-    SELECT sal FROM emp WHERE job = 'ANALYST');
+    SELECT sal FROM emp WHERE job = 'ANALYST')
+    AND job<>'ANALYST';
+--강사님 버젼
+--담당 업무를 통해 급여 확인 : 3000
+SELECT * FROM emp WHERE job = 'ANALYST';
+--문제의 조건을 일반쿼리문으로 작성
+SELECT * FROM emp WHERE sal < 3000 AND job<>'ANALYST';
+--서브쿼리문으로 작성
+SELECT * FROM emp WHERE sal <(SELECT sal FROM emp WHERE job = 'ANALYST')
+    AND job<>'ANALYST';
 /*
 07.이름에 K가 포함된 사원과 같은 부서에서 일하는 
 사원의 사원번호와 이름을 표시하는 질의를 작성하시오.
@@ -236,10 +277,32 @@ SELECT * FROM emp WHERE deptno in (
     SELECT deptno from emp where ename like '%K%'
 );
 
+--강사님 버젼
+--'K'가 포함된 사원은 10번, 30번 부서에서 근무하는 것을 확인
+SELECT * FROM emp WHERE ename LIKE '%K%';
+--10 혹은 30번 부서에서 근무하는 사원을 출력
+SELECT * FROM emp WHERE deptno IN (10, 30);
+--서브쿼리문으로 작성
+/*
+    or조건을 in으로 표현할 수 있다. 따라서 서브쿼리에서 복수행 연산자인
+    in을 사용한다. 2개 이상의 결과를 or로 연결해서 출력하는 기능을 수행한다.
+*/
+SELECT * FROM emp WHERE deptno in (
+    SELECT deptno FROM emp WHERE ename LIKE '%K%'
+);
+
 --08.부서 위치가 DALLAS인 사원의 이름과 부서번호 및 담당 업무를 표시하시오.
 SELECT empno, ename, sal FROM emp INNER JOIN dept USING (deptno)
 WHERE loc = 'DALLAS';
 
+--강사님 버젼
+--부서번호가 20임을 확인
+SELECT * FROM dept WHERE loc = 'DALLAS';
+--20번 부서에서 근무하는 사원
+SELECT * FROM emp WHERE deptno = 20;
+--서브쿼리문으로 작성
+SELECT empno, ename, sal FROM emp 
+WHERE deptno = (SELECT deptno FROM dept WHERE loc = 'DALLAS');
 /*
 09.평균 급여 보다 많은 급여를 받고 이름에 K가 포함된 사원과 같은 부서에서 
 근무하는 사원의 사원번호, 이름, 급여를 표시하시오.
@@ -255,14 +318,54 @@ SELECT empno, ename, sal FROM emp WHERE sal > ALL (SELECT AVG(sal) FROM emp)
     AND deptno IN (
     SELECT deptno FROM emp WHERE ename LIKE '%K%'
 );
+
+--강사님 버젼
+--평균급여 확인 : 2077
+SELECT AVG(sal) FROM emp;
+--급여가 2077 이상이고 이름에 'K'가 포함된 사원 : 10, 30
+SELECT * FROM emp WHERE sal > 2077 AND ename LIKE '%K%';
+--위 2개의 쿼리를 단순하게 작성하면..
+SELECT * FROM emp WHERE deptno IN (10, 30);
+--서브쿼리문으로 작성
+SELECT empno, ename, sal FROM emp WHERE deptno IN (
+    SELECT deptno FROM emp WHERE sal > (SELECT AVG(sal) FROM emp)
+    AND ename LIKE '%K%'
+);
+
+/* 이 식은 평균 급여보다 많은 급여를 받고, 이름에 K가 포함된 사원의 사원번호, 이름,
+급여를 표현함.
+
+SELECT empno, ename, sal FROM emp WHERE sal > ALL (
+    SELECT AVG(sal) from emp) AND
+        deptno IN (
+            SELECT deptno FROM emp WHERE ename LIKE '%K%'
+);
+*/
+
 --10.담당 업무가 MANAGER인 사원이 소속된 부서와 동일한 부서의 사원을 표시하시오.
 SELECT * FROM emp WHERE deptno IN (
     SELECT deptno FROM emp WHERE job = 'MANAGER'
 );
+
+--강사님 버젼
+--10, 20, 30번 부서임을 확인
+SELECT * FROM emp WHERE job = 'MANAGER';
+SELECT * FROM emp WHERE deptno IN (
+    SELECT deptno FROM emp WHERE job = 'MANAGER'
+);
+
 /*
 11.BLAKE와 동일한 부서에 속한 사원의 이름과 입사일을 
 표시하는 질의를 작성하시오(단. BLAKE는 제외)
 */
-SELECT ename, hiredate FROM emp WHERE deptno IN(
+SELECT ename, hiredate FROM emp WHERE deptno IN (
     SELECT deptno FROM emp WHERE ename = 'BLAKE')
     AND NOT ename = 'BLAKE';
+
+--강사님 버젼
+--30번 부서확인
+SELECT * FROM emp WHERE ename = 'BLAKE';
+
+SELECT ename, hiredate FROM emp WHERE ename<>'BLAKE' AND deptno = (
+    SELECT deptno FROM emp WHERE ename = 'BLAKE'
+);

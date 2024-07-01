@@ -404,6 +404,11 @@ from employees emp, departments dep
     where emp.department_id = dep.department_id
     and first_name = 'Janette';
 /*
+    오라클 방식은 표준방식에서 INNER JOIN 대신 comma(,)를 이용해서 테이블을
+    JOIN하고 ON절 대신 WHERE절에 JOIN될 컬럼을 명시한다.
+*/
+
+/*
 2. inner join 방식중 SQL표준 방식을 사용하여 사원이름과 함께 
 그 사원이 소속된 부서명과 도시명을 출력하시오.
 출력목록] 사원이름, 부서명, 도시명
@@ -435,13 +440,23 @@ first_name like '%A%';
 모든 사원의 이름, 업무명, 부서번호 및 부서명을 출력하시오.
 출력목록] 사원이름, 업무명, 부서ID, 부서명
 */
-select first_name, last_name, e.department_id, department_name
+select first_name, last_name, job_id, e.department_id, department_name
 from employees e, departments d, locations l
 where 
     e.department_id = d.department_id and
     d.location_id = l.location_id and
     l.city = 'Toronto' and
     l.state_province = 'Ontario';
+
+--강사님 버젼
+SELECT
+    first_name, last_name, job_id, department_id, department_name
+FROM locations
+    INNER join departments USING(location_id)
+    INNER join employees USING(department_id)
+    INNER join jobs USING(job_id)
+WHERE
+    city = 'Toronto' AND state_province = 'Ontario';
 
 /*
 5. Equi Join을 사용하여 커미션(COMMISSION_PCT)을 받는 모든 사원의 
@@ -450,7 +465,7 @@ where
 */
 SELECT first_name, last_name, e.department_id, department_name, city
 FROM employees e, departments d, locations l
-Where
+WHERE
     e.department_id = d.department_id and
     d.location_id = l.location_id and
     commission_pct IS NOT NULL;
@@ -462,9 +477,9 @@ Where
 출력목록] 담당업무ID, 부서ID, 부서명, 도시명
 */
 SELECT DISTINCT job_id, department_id, department_name, city
-FROM employees e
-    INNER JOIN departments d USING(department_id)
-    INNER JOIN locations l USING(location_id)
+FROM employees
+    INNER JOIN departments USING(department_id)
+    INNER JOIN locations USING(location_id)
 WHERE department_id = 50;
 
 /*
@@ -479,6 +494,21 @@ FROM employees eClerk, employees eManager
 WHERE eClerk.manager_id = eManager.employee_id
 and eClerk.job_id = 'FI_ACCOUNT';
 
+--강사님 버젼
+--1. 담당업무가 FI_ACCOUNT인 사원들의 매니저 아이디 조회
+SELECT employee_id, first_name, manager_id FROM employees
+WHERE job_id = 'FI_ACCOUNT';
+--2. 매니저 아이디가 108번이므로 사원번호 조회
+SELECT * FROM employees WHERE employee_id = 108;
+--3. 셀프조인을 통해서 해당 사원의 매니저 정보를 출력한다.
+SELECT DISTINCT
+    empManager.first_name, empManager.last_name, 
+    empManager.job_id, empManager.salary
+FROM employees empClerk, employees empManager /* 사원과 매니저 입장의 테이블로 구분 */
+WHERE empClerk.manager_id = empManager.employee_id
+AND empClerk.job_id = 'FI_ACCOUNT'; /* 사원입장의 담당업무 */
+
+
 /*
 8. 각 부서의 메니져가 누구인지 출력하시오. 
 출력결과는 부서번호를 오름차순 정렬하시오.
@@ -490,9 +520,9 @@ SELECT
     salary, job_id
 FROM employees e, departments d
 WHERE
-    e.department_id = d.department_id AND
     e.employee_id = d.manager_id
 ORDER BY department_id;
+/* 위 쿼리문은 JOIN의 조건으로 사용한 컬럼이 서로 다르므로 USING절은 사용할 수 없다. */
 
 /*
 9. 담당업무명이 Sales Manager인 사원들의 입사년도와 입사년도(hire_date)별 
@@ -507,4 +537,11 @@ WHERE
     job_title = 'Sales Manager'
 --   group by 안에는 별칭 작성 불가
     GROUP BY to_char(hire_date, 'yyyy'); 
-    
+
+--강사님 버젼
+SELECT 
+    to_char(hire_date, 'yyyy') hyear, AVG(salary)
+FROM employees INNER JOIN jobs USING(job_id)
+WHERE job_title = 'Sales Manager'
+GROUP BY to_char(hire_date, 'yyyy') /* 연도별로 그룹을 묶어준다. */
+ORDER BY hyear; /* ORDER BY 절이 제일 늦게 실행되고, 별칭 사용 가능하다. */
