@@ -120,3 +120,11 @@ insert into board (num, title, content, id, postdate, visitcount)
 
 --커밋해서 실제 테이블에 적용
 commit;
+
+--본인이 주로 사용하는 아이디 추가 입력하기
+INSERT INTO member VALUES ('kig1132', '1234', '데브엔', sysdate);
+SELECT * FROM member;
+/* 레코드 입력 후 커밋을 하지 않으면 외부 프로그램에서는 사용할 수 없다.
+반드시 COMMIT 명령을 실행하여 실제 테이블에 적용한 후 사용해야 한다. */
+COMMIT;
+
