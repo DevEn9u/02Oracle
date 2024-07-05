@@ -128,3 +128,102 @@ SELECT * FROM member;
 반드시 COMMIT 명령을 실행하여 실제 테이블에 적용한 후 사용해야 한다. */
 COMMIT;
 
+/**********************************
+모델1 방식의 회원제 게시판 제작하기
+***********************************/
+insert into board (num, title, content, id, postdate, visitcount)
+    values (seq_board_num.nextval, '지금은 봄입니다.', '봄의왈츠', 'musthave',
+        sysdate, 0);
+insert into board (num, title, content, id, postdate, visitcount)
+    values (seq_board_num.nextval, '지금은 여름입니다.', '여름향기', 'musthave',
+        sysdate, 0);
+insert into board (num, title, content, id, postdate, visitcount)
+    values (seq_board_num.nextval, '지금은 가을입니다.', '가을동화', 'musthave',
+        sysdate, 0);
+insert into board (num, title, content, id, postdate, visitcount)
+    values (seq_board_num.nextval, '지금은 겨울입니다.', '겨울연가', 'musthave',
+        sysdate, 0);
+
+SELECT * FROM board;
+
+--DAO의 selectCount()메서드 : board 테이블의 개시물 개수 카운트
+SELECT count(*) FROM board;
+SELECT count(*) FROM board WHERE title LIKE '%겨울%';
+SELECT count(*) FROM board WHERE title LIKE '%서유기%';
+--조건에 따라 0 혹은 그 이상의 정수값이 결과로 인출된다.(항상 결과값이 있다.)
+
+--selectList()메서드 : 게시판 목록에 출력할 레코드를 정렬해서 인출
+SELECT * FROM board ORDER BY num DESC;
+SELECT * FROM board WHERE title LIKE '%봄%' ORDER BY num DESC;
+SELECT * FROM board WHERE content LIKE '%내용%' ORDER BY num DESC;
+SELECT * FROM board WHERE title LIKE '%삼국지%' ORDER BY num DESC;
+--조건에 따라 인출되는 레코드가 아예 없을 수도 있다.
+
+COMMIT;
+
+--selectView() 메서드 : 게시물의 내용 상세보기
+/* board 테이블에는 id만 저장되어 있으므로 이름까지 출력하기 위해
+member 테이블과 join을 걸어서 쿼리문을 구성한다. */
+SELECT *
+    FROM board B INNER JOIN member M
+        ON B.id = M.ID
+WHERE num = 7; /* 2개 테이블의 모든 컬럼을 가져와서 인출한다. */
+
+/* 내용보기에서 출력할 내용만 가져오면 되므로 아래와 같이 별칭을 이용해서
+인출할 컬럼을 지정한다. */
+SELECT B.*, M.name
+    FROM board B INNER JOIN member M
+        ON B.id = M.ID
+WHERE num = 11;
+
+--JOIN을 위한 참조컬럼명이 동일하므로 USING으로 간단하게 표현할 수 있다.
+SELECT *
+    FROM board INNER JOIN member
+        USING(id)
+WHERE num = 11;
+
+--updateVisitCount() 메서드 : 게시물 조회시 visitcount 컬럼에 1을 증가시키는 작업
+UPDATE board SET visitcount = visitcount + 1 WHERE num = 2;
+SELECT * FROM board;
+
+
+--updateEdit() 메서드 : 게시물 수정하기
+UPDATE board
+    set title = '수정테스트', content = 'update문으로 게시물을 수정해봅니다.'
+    WHERE num = 2;
+SELECT * FROM board;
+COMMIT;
+
+/*
+모델1 게시판의 페이징 기능 추가를 위한 서브쿼리문
+*/
+--1. board 테이블의 게시물을 내림차순으로 정렬한다.
+SELECT * FROM board ORDER BY num DESC;
+
+--2. 내림차순으로 정렬된 상태에서 rownum을 통해 순차적인 번호를 부여한다.
+SELECT tb.*, rownum FROM (
+    SELECT * FROM board ORDER BY num DESC) tb;
+
+--3. ROWNUM을 통해 각 페이지에서 출력할 게시물의 구간을 결정한다.
+SELECT * FROM
+    (SELECT tb.*, ROWNUM rNum FROM
+       (SELECT * FROM board ORDER BY num DESC) tb
+    )
+--WHERE rNum >= 1 and rNum <= 10;
+WHERE rNum >= 11 and rNum <= 20;
+--WHERE rNum between 21 and 30;
+
+/*4. 검색어가 있는 경우에는 WHERE절이 동적으로 추가된다. LIKE절은 가장 안쪽의
+쿼리문에 추가하면 된다. 검색 조건에 맞는 게시물을 인출한 후 ROWNUM을
+부여하게 된다.*/
+SELECT * FROM
+    (SELECT tb.*, ROWNUM rNum FROM
+       (SELECT * FROM board 
+        WHERE title LIKE '%9번째%'
+        ORDER BY num DESC) tb
+    )
+WHERE rNum >= 1 and rNum <= 20;
+
+
+
+
