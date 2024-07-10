@@ -225,5 +225,30 @@ SELECT * FROM
 WHERE rNum >= 1 and rNum <= 20;
 
 
+create table mvcboard (
+    idx number primary key, /* 일련번호 */
+    name varchar2(50) not null, /* 작성자 이름 */
+    title varchar2(200) not null,/* 제목 */
+    content varchar2(2000) not null, /* 내용 */
+    postdate date default sysdate not null, /* 작성일 */
+    ofile varchar2(200), /* 원본 파일명 */
+    sfile varchar2(30), /* 서버에 저장된 파일명 */
+    downcount number(5) default 0 not null, /* 파일 다운로드 횟수 */
+    pass varchar2(50) not null, /* 패스워드 */
+    visitcount number default 0 not null /* 게시물 조회수 */
+);
+--더미 데이터 입력
+insert into mvcboard (idx, name, title, content, pass)
+    values (seq_board_num.nextval, '김유신', '자료실 제목1 입니다.','내용','1234');
+insert into mvcboard (idx, name, title, content, pass)
+    values (seq_board_num.nextval, '장보고', '자료실 제목2 입니다.','내용','1234');
+insert into mvcboard (idx, name, title, content, pass)
+    values (seq_board_num.nextval, '이순신', '자료실 제목3 입니다.','내용','1234');
+insert into mvcboard (idx, name, title, content, pass)
+    values (seq_board_num.nextval, '강감찬', '자료실 제목4 입니다.','내용','1234');
+insert into mvcboard (idx, name, title, content, pass)
+    values (seq_board_num.nextval, '대조영', '자료실 제목5 입니다.','내용','1234');
 
+commit;
 
+SELECT * FROM mvcboard;
