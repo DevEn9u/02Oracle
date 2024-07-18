@@ -107,7 +107,7 @@ create sequence seq_board_num
     
 --더미 데이터 입력
 /*
-부모테이블인 memeber에 먼저 레코드를 삽입한 후 자식테이블인 board에 삽입해야 한다.
+부모테이블인 member에 먼저 레코드를 삽입한 후 자식테이블인 board에 삽입해야 한다.
 만약 자식테이블에 먼저 입력하면 부모키가 없다는 에러가 발생한다.
 2개의 테이블은 서로 외래키(참조관계)가 설정되어 있으므로 참조 무결성을 유지하기 위해
 순서대로 레코드를 삽입해야 한다.
@@ -252,3 +252,111 @@ insert into mvcboard (idx, name, title, content, pass)
 commit;
 
 SELECT * FROM mvcboard;
+
+------------------------------------------------------------------------
+/*
+백엔드 2차 프로젝트 : 넥슨게임즈 계정 연동을 위한 계정 생성
+*/
+
+ALTER SESSION SET "_ORACLE_SCRIPT"=true;
+CREATE USER ngadmin IDENTIFIED BY ng1234;
+GRANT CONNECT, RESOURCE, unlimited tablespace TO ngadmin;
+
+SELECT * FROM member;
+
+/* 테이블 및 시퀀스 생성을 위해 기존 생성된 객체가 있다면 삭제를 진행한 후
+새롭게 생성한다. */
+drop table member;
+drop table board;
+drop sequence seq_board_num;
+
+--회원 테이블 생성
+CREATE TABLE member (
+    id varchar2(10) not null,
+    pass varchar2(10) not null,
+    name varchar2(30) not null,
+    email varchar2(30) not null,
+    phone_number varchar2(30) not null,
+    primary key (id) /* id컬럼을 기본키(PK)로 설정*/
+);
+ALTER TABLE member
+ADD regidate DATE DEFAULT SYSDATE;
+
+--게시판 테이블 생성(자유게시판, qna 게시판, 다운로드 게시판으로 나뉜다) 07.18기준 생성
+CREATE TABLE free_board (
+    idx number primary key, /* 일련번호 */
+    name varchar2(50) not null, /* 작성자 이름 */
+    title varchar2(200) not null,/* 제목 */
+    content varchar2(2000) not null, /* 내용 */
+    postdate date default sysdate not null, /* 작성일 */
+    visitcount number default 0 not null /* 게시물 조회수 */
+);
+CREATE TABLE qna_board (
+    idx number primary key, /* 일련번호 */
+    name varchar2(50) not null, /* 작성자 이름 */
+    title varchar2(200) not null,/* 제목 */
+    content varchar2(2000) not null, /* 내용 */
+    postdate date default sysdate not null, /* 작성일 */
+    visitcount number default 0 not null /* 게시물 조회수 */
+);
+CREATE TABLE download_board (
+    idx number primary key, /* 일련번호 */
+    name varchar2(50) not null, /* 작성자 이름 */
+    title varchar2(200) not null,/* 제목 */
+    content varchar2(2000) not null, /* 내용 */
+    postdate date default sysdate not null, /* 작성일 */
+    ofile varchar2(200), /* 원본 파일명 */
+    sfile varchar2(30), /* 서버에 저장된 파일명 */
+    downcount number(5) default 0 not null, /* 파일 다운로드 횟수 */
+    visitcount number default 0 not null /* 게시물 조회수 */
+);
+
+
+--외래키 설정
+/*
+자식테이블인 board가 부모테이블인 member를 참조하는 외래키를 설정한다.
+board의 id 컬럼이 member의 기본키인 id 컬럼을 참조하도록 제약조건을 설정.
+*/
+alter table board
+    add constraint board_mem_fk foreign key (id)
+    references member (id); --제약조건명까지 포함해서 외래키 생성함.
+    
+--시퀀스 생성
+--board 테이블에 중복되지 않는 일련번호를 부여한다.
+create sequence seq_board_num
+    /* 증가치, 시작값, 최솟값을 모두 1로 설정 */
+    increment by 1
+    start with 1
+    minvalue 1
+    /* 최댓값, cycle, cache메모리 사용을 모두 no로 설정 */
+    nomaxvalue
+    nocycle
+    nocache;
+    
+insert into member (id, pass, name, email, phone_number) values
+('musthave', '1234', '머스트해브', 'musthave@naver.com', '010-1111-2222');
+insert into board (num, title, content, id, postdate, visitcount)
+    values (
+        seq_board_num.nextval, '제목1입니다', 
+        '내용1입니다', 'musthave', sysdate, 0);
+
+--커밋해서 실제 테이블에 적용
+commit;
+delete from member where name like '%asd%';
+
+--더미 데이터 입력
+insert into free_board (idx, name, title, content)
+    values (seq_board_num.nextval, '김유신', '자료실 제목1 입니다.','내용');
+insert into free_board (idx, name, title, content)
+    values (seq_board_num.nextval, '장보고', '자료실 제목2 입니다.','내용');
+insert into free_board (idx, name, title, content)
+    values (seq_board_num.nextval, '이순신', '자료실 제목3 입니다.','내용');
+insert into free_board (idx, name, title, content)
+    values (seq_board_num.nextval, '강감찬', '자료실 제목4 입니다.','내용');
+insert into free_board (idx, name, title, content)
+    values (seq_board_num.nextval, '대조영', '자료실 제목5 입니다.','내용');
+
+commit;
+
+SELECT * FROM free_board;
+SELECT COUNT(*) FROM free_board;
