@@ -267,7 +267,10 @@ SELECT * FROM member;
 /* 테이블 및 시퀀스 생성을 위해 기존 생성된 객체가 있다면 삭제를 진행한 후
 새롭게 생성한다. */
 drop table member;
-drop table board;
+drop table free_board;
+drop table download_board;
+drop table qna_board;
+drop table comments;
 drop sequence seq_board_num;
 
 --회원 테이블 생성
@@ -288,6 +291,7 @@ CREATE TABLE free_board (
     name varchar2(50) not null, /* 작성자 이름 */
     title varchar2(200) not null,/* 제목 */
     content varchar2(2000) not null, /* 내용 */
+    id varchar2(10) default 'test9999' not null,
     postdate date default sysdate not null, /* 작성일 */
     visitcount number default 0 not null /* 게시물 조회수 */
 );
@@ -296,6 +300,7 @@ CREATE TABLE qna_board (
     name varchar2(50) not null, /* 작성자 이름 */
     title varchar2(200) not null,/* 제목 */
     content varchar2(2000) not null, /* 내용 */
+    id varchar2(10) default 'test9999' not null,
     postdate date default sysdate not null, /* 작성일 */
     visitcount number default 0 not null /* 게시물 조회수 */
 );
@@ -303,12 +308,22 @@ CREATE TABLE download_board (
     idx number primary key, /* 일련번호 */
     name varchar2(50) not null, /* 작성자 이름 */
     title varchar2(200) not null,/* 제목 */
-    content varchar2(2000) not null, /* 내용 */
+    content varchar2(2000) not null, /* 내용 */   
+    id varchar2(10) default 'test9999' not null,
     postdate date default sysdate not null, /* 작성일 */
     ofile varchar2(200), /* 원본 파일명 */
     sfile varchar2(30), /* 서버에 저장된 파일명 */
     downcount number(5) default 0 not null, /* 파일 다운로드 횟수 */
     visitcount number default 0 not null /* 게시물 조회수 */
+);
+CREATE TABLE comments (
+    comm_idx number primary key, /* 댓글의 일련번호 */
+    board_idx number not null, /* 댓글이 작성된 게시글의 일련번호 */
+    name varchar2(50) not null, /* 작성자 이름 */
+    content varchar2(1000) not null, 
+    id varchar2(10) default 'test9999' not null,
+    postdate date default sysdate not null,
+    CONSTRAINT FK_comment FOREIGN KEY(board_idx) REFERENCES qna_board(idx)
 );
 
 
@@ -317,10 +332,13 @@ CREATE TABLE download_board (
 자식테이블인 board가 부모테이블인 member를 참조하는 외래키를 설정한다.
 board의 id 컬럼이 member의 기본키인 id 컬럼을 참조하도록 제약조건을 설정.
 */
-alter table board
+alter table free_board
     add constraint board_mem_fk foreign key (id)
     references member (id); --제약조건명까지 포함해서 외래키 생성함.
-    
+
+SELECT * FROM (SELECT Tb.*, ROWNUM rNum FROM (SELECT * FROM
+    free_board ORDER BY idx DESC) Tb) WHERE rNum BETWEEN 1 AND 10;
+
 --시퀀스 생성
 --board 테이블에 중복되지 않는 일련번호를 부여한다.
 create sequence seq_board_num
@@ -360,3 +378,29 @@ commit;
 
 SELECT * FROM free_board;
 SELECT COUNT(*) FROM free_board;
+
+-- rownum으로 출력
+SELECT tb.*, rownum FROM (
+    SELECT * FROM free_board ORDER BY idx DESC) tb;
+
+
+--시퀀스 생성
+--comments 테이블에 중복되지 않는 일련번호를 부여한다.
+create sequence seq_comments_num
+    /* 증가치, 시작값, 최솟값을 모두 1로 설정 */
+    increment by 1
+    start with 1
+    minvalue 1
+    /* 최댓값, cycle, cache메모리 사용을 모두 no로 설정 */
+    nomaxvalue
+    nocycle
+    nocache;
+-- INSERT comments dummy data
+insert into comments (comm_idx, board_idx, name, content, id)
+    values (seq_comments_num.nextval, 21, '머스트해브',
+    'Test Comment 1234', 'musthave');
+    
+SELECT * FROM (SELECT Tb.*, ROWNUM rNum FROM (
+				 SELECT * FROM comments
+				 ORDER BY comm_idx)
+			     Tb) WHERE rNum BETWEEN 0 AND 10;
