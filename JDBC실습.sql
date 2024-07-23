@@ -401,6 +401,10 @@ insert into comments (comm_idx, board_idx, name, content, id)
     'Test Comment 1234', 'musthave');
     
 SELECT * FROM (SELECT Tb.*, ROWNUM rNum FROM (
-				 SELECT * FROM comments
+				 SELECT * FROM comments where board_idx = 21
 				 ORDER BY comm_idx)
 			     Tb) WHERE rNum BETWEEN 0 AND 10;
+                 
+delete from comments where comm_idx = 22;
+delete from member where id like'%123%';
+SELECT COUNT(*) FROM comments WHERE board_idx = 24;
