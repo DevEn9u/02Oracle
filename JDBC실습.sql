@@ -224,7 +224,7 @@ SELECT * FROM
     )
 WHERE rNum >= 1 and rNum <= 20;
 
-
+-----------------------모델 2방식 테이블--------------------------
 create table mvcboard (
     idx number primary key, /* 일련번호 */
     name varchar2(50) not null, /* 작성자 이름 */
