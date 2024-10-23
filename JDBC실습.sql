@@ -596,4 +596,237 @@ EXECUTE MyMemberAuth('hi아이디틀림', '1234', :member_auth);
 /* 회원정보가 없는 경우 0 */
 PRINT member_auth;
 
+/*
+Spring Boot - MyBatis 에서 다양한 parameter 사용하기
+*/
+-- id, name 컬럼을 조건으로 검색하기
+SELECT * FROM member WHERE (id LIKE '%a%' OR name LIKE '%a%');
+
+----------------------------
+CREATE TABLE myboard(
+    idx number primary key,
+    name varchar2(50),
+    title varchar2(200),
+    content varchar2(2000),
+    postdate date default sysdate,
+    visitcount number default 0
+);
+
+--더미 데이터 입력
+insert into myboard (idx, name, title, content)
+    values (seq_board_num.nextval, '김유신', '자료실 제목1 입니다.','내용');
+insert into myboard (idx, name, title, content)
+    values (seq_board_num.nextval, '장보고', '자료실 제목2 입니다.','내용');
+insert into myboard (idx, name, title, content)
+    values (seq_board_num.nextval, '이순신', '자료실 제목3 입니다.','내용');
+insert into myboard (idx, name, title, content)
+    values (seq_board_num.nextval, '강감찬', '자료실 제목4 입니다.','내용');
+insert into myboard (idx, name, title, content)
+    values (seq_board_num.nextval, '대조영', '자료실 제목5 입니다.','내용');
+commit;
+
+select * from myboard;
+----------------------------------------
+/*******
+트랜잭션 - TransactionManager 활용
+    : 티켓 구매와 결제를 동시에 시도해서 구매에 오류가 발생하는 경우
+    모든 업무를 Rollback 처리한다. 2개의 업무가 모두 정상적으로
+    처리되면 COMMIT 해서 테이블에 적용한다.
+*******/
+
+-- 기존 테이블 삭제
+DROP TABLE transaction_pay;
+DROP TABLE transaction_ticket;
+
+-- 티켓 판매 금액을 입력하는 테이블
+-- CHECK 제약조건에 의해 5장을 초과하면 에러가 발생한다.
+CREATE TABLE transaction_pay (
+    userid VARCHAR2(30) NOT NULL,
+    amount NUMBER NOT NULL
+);
+CREATE TABLE transaction_ticket (
+    userid VARCHAR2(30) NOT NULL,
+    t_count NUMBER(2) NOT NULL
+        CHECK(t_count <= 5)
+);
+
+-- 정상적인 구매가 이루어지는 업무 : 데이터 입력 테스트1 (성공)
+INSERT INTO transaction_pay VALUES ('korea', 40000); -- 입력성공
+INSERT INTO transaction_ticket VALUES ('korea', 4); -- 입력성공
+
+/* 제약조건에 의해 6장부터는 구매할 수 없으므로 아래 쿼리문은 금액 부분만 
+ 입력되고, 매수부분은 입력되지 않는다. 즉 Transaction 처리가 되지 않아
+ 매수와 금액이 일치하지 않는 오류가 발생한다.
+ 데이터 입력 테스트2 (실패) */
+INSERT INTO transaction_pay VALUES ('korea', 90000); -- 입력성공
+INSERT INTO transaction_ticket VALUES ('korea', 9); -- check제약조건 위배로 입력불가
+
+-- 확인 및 커밋
+SELECT * FROM transaction_pay;
+SELECT * FROM transaction_ticket;
+COMMIT;
+--------------------------------------------------------
+/******************
+24.09.03
+Spring Boot - Security JDBC 커스터마이징
+*******************/
+DROP TABLE security_admin;
+
+-- Spring Security 구현을 위한 테이블 생성
+-- authority 컬럼 : 회원의 권한. ROLE_ 접두어는 필수사항.
+-- enable 컬럼 : 로그인 활성화 여부. 0인 경우 로그인 잠금
+CREATE TABLE security_admin(
+    user_id VARCHAR2(30) PRIMARY KEY,
+    user_pw VARCHAR2(200) NOT NULL,
+    authority VARCHAR2(20) DEFAULT 'ROLE_USER', /* 회원 권한 */
+    enabled NUMBER(1) DEFAULT 1 /* 활성화여부. 0인 경우 로그인되지 않음*/
+);
+-- 더미데이터 입력
+-- user 권한의 회원
+INSERT INTO security_admin values ('user1', '1234', 'ROLE_USER', 1);
+INSERT INTO security_admin values ('user2', '1234', 'ROLE_USER', 0);    
+-- admin 권한의 레코드
+INSERT INTO security_admin values ('admin1', '1234', 'ROLE_ADMIN', 1);    
+INSERT INTO security_admin values ('admin2', '1234', 'ROLE_ADMIN', 0);   
+commit;
+SELECT * FROM security_admin;
+
+-- 레코드 전체를 대상으로 패스워드 업데이트
+UPDATE security_admin SET user_pw = '$2a$10$HfDhAeGyzQdEMnNzjyYDkuH64hX9peGlroA3OXE66frz8MYWwQtXi';
+SELECT * FROM security_admin;
+commit;
+/*****************
+12-2_파일 업로드 - JDBC 연동(Spring Boot)
+- Mybatis 기반
+******************/
+CREATE TABLE myfile(
+    idx NUMBER PRIMARY KEY NOT NULL,
+    title VARCHAR2(200) NOT NULL,
+    cate VARCHAR2(100),
+    ofile VARCHAR2(100) NOT NULL,
+    sfile VARCHAR2(30) NOT NULL,
+    postdate DATE DEFAULT sysdate NOT NULL
+);
+SELECT * FROM myfile;
+commit;
+
+--데이터값(sfile)이 커서 컬럼의 데이터타입 수정
+ALTER TABLE myfile MODIFY sfile VARCHAR2(100);
+
+-----------------------------------------------
+/******************
+24.09.06(금)
+18_시도/구군 동적 셀렉트(Spring Boot)
+- 시도/구군을 dynamic하게 SELECT로 구현
+*******************/
+CREATE TABLE zipcode(
+    zipcode CHAR(7),
+    sido VARCHAR2(10),
+    gugun VARCHAR2(50),
+    dong VARCHAR2(200),
+    bunji VARCHAR2(50),
+    seq NUMBER
+);
+
+-- 전체 5만건의 데이터 중 시.도를 중복없이 인출
+-- DISTINCT 사용(평균등의 그룹함수가 없을 때 더 간단) / GROUP BY 사용
+SELECT * FROM zipcode;
+SELECT DISTINCT sido FROM zipcode;
+SELECT sido FROM zipcode GROUP BY sido;
+
+-- 선택한 시/도에 따른 구/군을 중복없이 인출
+SELECT DISTINCT gugun FROM zipcode WHERE sido = '서울';
+SELECT gugun FROM zipcode WHERE sido = '서울' GROUP BY gugun;
+
+/******************
+24.09.09(월)
+Geolocation API 이용해 얻어온 위/경도를 기반으로 지정된 반경에 있는
+시설물 검색하기
+******************/
+CREATE TABLE global_facility (
+	idx number PRIMARY KEY ,
+	hp_sido varchar2(20)   ,
+	hp_gugun varchar2(40)   ,
+	hp_genre number(2) ,
+	hp_genre_name varchar2(30)   ,
+	hp_name varchar2(100)   ,
+	hp_url varchar2(400)   ,
+	hp_explain varchar2(400)   ,
+	hp_tel varchar2(20)   ,
+	hp_addr varchar2(100)   ,
+	hp_naver_x varchar2(10)   ,
+	hp_naver_y varchar2(10)   ,
+	hp_latitude varchar2(20)   ,
+	hp_longitude varchar2(20)   
+);
+
+SELECT COUNT(*) FROM global_facility;
+COMMIT;
+/*
+radians(deg) 함수는 각도 디그리(degree)를 라디안(radian)으로 바꿔 주는 매크로 함수. 
+cos(rad), sin(rad), tan(rad) 삼각함수들을 사용할 때 라디안 값을
+써야 하기 때문에 알아두면 편리하다.
+*/
+create or replace function radians(ndegrees in number) 
+return number 
+is
+begin
+	return ndegrees / 57.29577951308232087679815481410517033235;
+end;
+/
+
+/*
+거리를 측정하기 위한 함수 생성. WGS84 좌표계는 군사적인 목적에서
+전 지구를 하나의 좌표계로 표현해야 하는 필요성이 증대되면서 출현하게됨.
+*/
+CREATE OR REPLACE FUNCTION distance_wgs84( 
+	My_LAT IN NUMBER, My_LNG IN NUMBER, 
+	Fa_LAT IN NUMBER, Fa_LNG IN NUMBER)
+RETURN NUMBER
+IS
+BEGIN
+	RETURN ( 6371.0 * ACOS(COS( radians( my_lat ) ) * COS( radians( fa_lat ) )
+		* COS( radians( fa_lng  ) - radians( my_lng ) )
+		+ SIN( radians( my_lat ) ) * Sin( radians( fa_lat ) ) )
+	);
+END ;
+/
+
+-- 종각역에서 사당역까지 직선 거리 계산하기
+-- 종각역 : 37.568199, 126.997704
+-- 사당역 : 37.476556, 126.981635
+SELECT distance_wgs84(37.568199, 126.997704, 37.476556, 126.981635) FROM dual;
+-- 출력 값 : 10.28830330294361026406106923850415427701
+-- 대략 10.3km
+
+-- 서울시 강남구에 있는 시설물
+SELECT COUNT(*) FROM global_facility WHERE hp_sido = '서울'
+AND hp_gugun = '강남구';
+SELECT COUNT(*) FROM global_facility WHERE hp_sido = '서울'
+AND hp_gugun = '종로구';
+
+-- 현재 내위치(종각)에서 시설물까지의 거리 계산
+SELECT hp_name, hp_gugun, hp_addr,
+    distance_wgs84(37.568199, 126.997704, hp_latitude, hp_longitude)
+FROM global_facility WHERE hp_sido = '서울';
+
+-- 종각역에서 반경 1km 이내에 있는 시설물 검색하기
+SELECT hp_name, hp_gugun, hp_addr,
+    distance_wgs84(37.568199, 126.997704, hp_latitude, hp_longitude)
+FROM global_facility WHERE hp_sido = '서울' AND
+    distance_wgs84(37.568199, 126.997704, hp_latitude, hp_longitude) <= 1;
+
+-- 소수점 처리(5째 자리까지만)
+SELECT hp_name, hp_gugun, hp_addr,
+    TRUNC(distance_wgs84(37.568199, 126.997704, hp_latitude, hp_longitude), 5)
+FROM global_facility WHERE hp_sido = '서울' AND
+   TRUNC(distance_wgs84(37.568199, 126.997704, hp_latitude, hp_longitude), 5) <= 1;
+-- searchCount() 함수
+/*
+distance_wgs84(나의위도, 나의경도, 시설물위도, 시설물경도)
+이렇게 하면 나와 시설물 사이의 거리가 km로 반환된다.
+*/
+SELECT COUNT(*) FROM global_facility WHERE
+TRUNC(TO_NUMBER(distance_wgs84(
+    37.563398, 126.9863309, hp_latitude, hp_longitude)), 5) <= 1;
 
